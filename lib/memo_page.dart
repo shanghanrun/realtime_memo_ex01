@@ -1,5 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:realtime_memo_ex01/memoDetailPage.dart';
 import 'package:realtime_memo_ex01/memo_add_page.dart';
 import 'package:realtime_memo_ex01/model/memo.dart';
 
@@ -72,20 +73,23 @@ class _MemoPageState extends State<MemoPage> {
                               child: Text(memo.content),
                               onTap: () async {
                                 //메모 상세보기 화면으로 이동
-                                Memo? modifiedMemo = await Navigator.of(context)
+                                final modifiedMemo = await Navigator.of(context)
                                     .push(MaterialPageRoute<Memo>(
                                         builder: (context) =>
                                             MemoDetailPage(ref!, memo)));
+                                if (modifiedMemo != null) {
+                                  setState(() {
+                                    memo.title = modifiedMemo.title;
+                                    memo.content = modifiedMemo.content;
+                                  });
+                                }
                               },
                               onLongPress: () {
                                 // 메모 삭제 기능
                                 showDialog(
                                     context: context,
                                     builder: (_) {
-                                      return AlertDialog(
-                                          title: Text(memo.title),
-                                          content: const Text('정말 삭제하시겠습니까?'),
-                                          actions: [TextButton()]);
+                                      return makeAlertDialog(memo, i, context);
                                     });
                               },
                             ),
@@ -97,5 +101,29 @@ class _MemoPageState extends State<MemoPage> {
         ),
       ),
     );
+  }
+
+  AlertDialog makeAlertDialog(Memo memo, int i, BuildContext context) {
+    return AlertDialog(
+        title: Text(memo.title),
+        content: const Text('삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+              child: const Text('예'),
+              onPressed: () {
+                ref! //데이터베이스 컬렉션
+                    .child(memo.key!) //삭제시 key값 필수
+                    .remove()
+                    .then((_) {
+                  memos.removeAt(i); // memos 리스트
+                  Navigator.of(context).pop();
+                });
+              }),
+          TextButton(
+              child: const Text('아니오'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              }),
+        ]);
   }
 }
