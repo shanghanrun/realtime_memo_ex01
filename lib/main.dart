@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:realtime_memo_ex01/memo_page.dart';
@@ -23,7 +24,51 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MemoPage(),
+      home: FutureBuilder(
+          future: Firebase.initializeApp(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(
+                child: Text('Error'),
+              );
+            }
+            if (snapshot.connectionState == ConnectionState.done) {
+              initFCM(context);
+              getToken();
+              return const MemoPage();
+            }
+            return const Center(child: CircularProgressIndicator());
+          }),
     );
+  }
+
+  initFCM(context) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage event) {
+      final message = event.notification;
+      print(message!.title);
+      print(message.body);
+      showDialog(
+          context: context,
+          builder: (_) {
+            return AlertDialog(
+              title: const Text('알림'),
+              content: Text(message.body!),
+              actions: [
+                TextButton(
+                  child: const Text('Ok'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          });
+    });
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {});
+  }
+
+  getToken() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+    print('messaging.getToken() , ${await messaging.getToken()}');
   }
 }
